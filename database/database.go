@@ -13,12 +13,10 @@ type DriverName string
 // Driver names for convenience
 var DriverMysql DriverName = "mysql"
 var DriverSqlite DriverName = "sqlite"
-var DriverTesting DriverName = "testing"
 
 var Drivers map[DriverName]Driver = map[DriverName]Driver {
 	DriverMysql: MysqlDriver{},
 	DriverSqlite: SQLiteDriver{},
-	DriverTesting: TestingDriver{},
 }
 
 func GetDriver(driver DriverName, cfg Config) (Driver, error) {

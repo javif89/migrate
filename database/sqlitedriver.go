@@ -48,37 +48,45 @@ func (m SQLiteDriver) Run(query string) error {
 }
 
 func (m SQLiteDriver) Wipe() error {
-	// Get all the table drop commands
-	q := fmt.Sprintf(`
-		SELECT table_name
-		FROM information_schema.tables
-		WHERE table_schema = '%s';
-	`, m.config.Database)
-
-	rows, err := m.conn.Query(q)
-
+	query := `SELECT name FROM sqlite_master WHERE type = 'table';`
+	tables, err := m.conn.Query(query)
 	if err != nil {
 		return err
 	}
+	defer func() {
+		if errClose := tables.Close(); errClose != nil {
+			fmt.Println("Err close ", errClose)
+		}
+	}()
 
-	defer rows.Close()
-
-	// Disable foreign keys
-	m.conn.Exec("SET FOREIGN_KEY_CHECKS = 0;")
-
-	// Delete all tables
-	for rows.Next() {
-		var t string
-		rows.Scan(&t)
-		m.conn.Exec(fmt.Sprintf("DROP TABLE IF EXISTS `%s`", t))
+	tableNames := make([]string, 0)
+	for tables.Next() {
+		var tableName string
+		if err := tables.Scan(&tableName); err != nil {
+			return err
+		}
+		if len(tableName) > 0 {
+			tableNames = append(tableNames, tableName)
+		}
+	}
+	if err := tables.Err(); err != nil {
+		return err
 	}
 
-	if rows.Err() != nil {
-		return rows.Err()
+	if len(tableNames) > 0 {
+		for _, t := range tableNames {
+			query := "DROP TABLE " + t
+			_, err = m.conn.Exec(query)
+			if err != nil {
+				return err
+			}
+		}
+		query := "VACUUM"
+		_, err = m.conn.Query(query)
+		if err != nil {
+			return err
+		}
 	}
-
-	// Enable foreign keys
-	m.conn.Exec("SET FOREIGN_KEY_CHECKS = 1;")
 
 	return nil
 }

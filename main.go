@@ -14,7 +14,7 @@ import (
 )
 
 var ErrNoMigrations error = errors.New("no migrations") 
-var ErrNoMigrationsToRun = errors.New("nothing to migrate")
+var ErrNoMigrationsToRun error = errors.New("nothing to migrate")
 
 type Migrations struct {
 	path string
@@ -65,6 +65,7 @@ func (m *Migrations) Migrate() error {
 		err := m.driver.Run(q)
 
 		if err != nil {
+			fmt.Printf("Failed migrating %s\n", mg.Name())
 			log.Fatal(err)
 			break
 		}
@@ -138,28 +139,15 @@ func (m *Migrations) GetMigrations() ([]Migration, error) {
 
 // Get migrations in reverse order. Mostly for rollbacks
 func (m *Migrations) GetMigrationsReverse() ([]Migration, error) {
-	files, err := os.ReadDir(m.path)
+	mg, err := m.GetMigrations()
 
 	if err != nil {
 		return nil, err
 	}
 
-	migrations := []Migration{}
+	slices.Reverse(mg)
 
-	for i := len(files)-1; i >= 0; i-- {
-		f := files[i]
-		if !f.IsDir() {
-			path := filepath.Join(m.path, f.Name())
-			migrations = append(migrations, Migration{Path: path})
-		}
-	}
-
-	// Let them know we have no migrations
-	if len(migrations) == 0 {
-		return nil, ErrNoMigrations
-	}
-
-	return migrations, nil
+	return mg, nil
 }
 
 // Get the migrations that have not been run yet
