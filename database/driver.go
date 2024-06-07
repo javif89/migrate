@@ -18,4 +18,6 @@ type Driver interface {
 
 	// Wipe deletes everything in the database.
 	Wipe() error
+
+	CreateMigrationsTable() error
 }

@@ -89,6 +89,20 @@ func (m MysqlDriver) Wipe() error {
 	return nil
 }
 
+func (m MysqlDriver) CreateMigrationsTable() error {
+	_, err := m.conn.Exec(`
+		create table if not exists migrations (
+			id bigint NOT NULL AUTO_INCREMENT,
+			migration varchar(255),
+			batch int,
+
+			primary key (id)
+		)
+	`)
+
+	return err
+}
+
 func (m MysqlDriver) GetConnection() *sql.DB {
 	return m.conn
 }

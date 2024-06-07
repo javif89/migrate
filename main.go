@@ -44,7 +44,10 @@ func (m *Migrations) CreateMigration(name string) {
 }
 
 func (m *Migrations) Migrate() error {
-	m.setUpMigrationsTable()
+	if err := m.driver.CreateMigrationsTable(); err != nil {
+		return err
+	}
+
 	migrations, err := m.GetUnexecutedMigrations()
 	batch := m.nextBatch()
 
@@ -278,20 +281,6 @@ func (m *Migrations) GetMigrationsInBatch(batch int) []string {
     }
 
 	return ms
-}
-
-func (m *Migrations) setUpMigrationsTable() error {
-	q := `
-		create table if not exists migrations (
-			id bigint NOT NULL AUTO_INCREMENT,
-			migration varchar(255),
-			batch int,
-
-			primary key (id)
-		)
-	`
-
-	return m.driver.Run(q)
 }
 
 func getMigrationFileName(name string) string {
